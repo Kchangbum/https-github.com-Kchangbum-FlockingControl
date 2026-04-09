@@ -6,7 +6,7 @@ agentPath = [mdl, '/2-Dimensional model/RL Agent'];
 previousRngState = rng(0,"twister");
 
 %% Info & Setting value
-obsInfo = rlNumericSpec([8 1]); % 8개의 상태 정보
+obsInfo = rlNumericSpec([80 1]); % 8개의 상태 정보
 obsInfo.Name = "observations";
 actInfo = rlNumericSpec([3 1], 'LowerLimit', 0, 'UpperLimit', 1); % 3개의 가중치 (0~1 사이)
 actInfo.Name = "actors";
@@ -28,12 +28,12 @@ env.ResetFcn = @localResetFcn;
 %%
 % Common path
 commonPath = [
-    concatenationLayer(1,2,Name="concat") % 1번째 차원으로 2개의 입력을 합침
-    fullyConnectedLayer(128) % 뉴런 수를 50개 정도로 늘리면 학습이 더 잘 됩니다
+    concatenationLayer(1, 2, Name="concat") % 1번째 차원으로 2개의 입력을 합침
+    fullyConnectedLayer(256) % 뉴런 수를 50개 정도로 늘리면 학습이 더 잘 됩니다
     reluLayer() % 현실적 판단? 
-    fullyConnectedLayer(64)
+    fullyConnectedLayer(128)
     reluLayer()
-    fullyConnectedLayer(1,Name="QValue") % Q-value 사용
+    fullyConnectedLayer(1, Name="QValue") % Q-value 사용
     % sigmoidLayer(Name="sigmoid") % 0~1 범위 한정 필수
     ];
 
@@ -68,12 +68,12 @@ getValue(critic, ...
 % Creating actor
 actorNet = [
     featureInputLayer(obsInfo.Dimension(1))
+    fullyConnectedLayer(256)
+    reluLayer()
     fullyConnectedLayer(128)
     reluLayer()
-    fullyConnectedLayer(64)
-    reluLayer()
     fullyConnectedLayer(actInfo.Dimension(1), Name="actOut") % 3 출력
-    softmaxLayer(Name="softmax")         % ★ 출력 3개의 합을 1로 고정
+    sigmoidLayer(Name="sigmoid")         % ★ 출력 3개의 합을 1로 고정
     ];
 
 rng(0,"twister");
@@ -104,7 +104,7 @@ agent.AgentOptions.ActorOptimizerOptions = actorOpts;
 agent.AgentOptions.CriticOptimizerOptions = criticOpts;
 
 % Noise model
-agent.AgentOptions.NoiseOptions.StandardDeviation = 0.3;
+agent.AgentOptions.NoiseOptions.StandardDeviation = 0.5;
 agent.AgentOptions.NoiseOptions.StandardDeviationDecayRate = 1e-4;
 getAction(agent,{rand(obsInfo.Dimension)});
 % 
@@ -134,7 +134,7 @@ doTraining = true;
 if doTraining
     % Train the agent.
     trainingStats = train(agent, env, trainOpts, Evaluator=evl);
-    save("AgentTest4.mat","agent");
+    save("AgentTest5.mat","agent");
 else
     load("AgentTest2.mat", "agent");
     trainingStats = train(agent, env, trainOpts, Evaluator=evl);
