@@ -34,7 +34,6 @@ commonPath = [
     fullyConnectedLayer(128)
     reluLayer()
     fullyConnectedLayer(1, Name="QValue") % Q-value 사용
-    % sigmoidLayer(Name="sigmoid") % 0~1 범위 한정 필수
     ];
 
 % Create the network object and add the layers
@@ -73,7 +72,9 @@ actorNet = [
     fullyConnectedLayer(128)
     reluLayer()
     fullyConnectedLayer(actInfo.Dimension(1), Name="actOut") % 3 출력
-    sigmoidLayer(Name="sigmoid")         % ★ 출력 3개의 합을 1로 고정
+    sigmoidLayer(Name="sigmoid")       
+    % scalingLayer(Scale=1, Bias=0.01, Name="scale")
+
     ];
 
 rng(0,"twister");
@@ -128,17 +129,17 @@ evl = rlEvaluator(EvaluationFrequency=10,NumEpisodes=5);
 
 rng(0,"twister");
 
-doTraining = true;
+doTraining = false;
 
 % Start the training process if doTraining is true
 if doTraining
     % Train the agent.
     trainingStats = train(agent, env, trainOpts, Evaluator=evl);
-    save("AgentTest5_2.mat","agent");
+    save("RL_test/AgentTest5_2.mat","agent");
 else
-    % load("AgentTest5_1.mat", "agent");
-    % trainingStats = train(agent, env, trainOpts, Evaluator=evl);
-    % save("AgentTest5_2.mat","agent");
+    load("RL_test/AgentTest5_2.mat", "agent");
+    trainingStats = train(agent, env, trainOpts, Evaluator=evl);
+    save("RL_test/AgentTest5_3.mat","agent");
 end 
 
 %% Validation training agent
