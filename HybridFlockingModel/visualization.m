@@ -118,10 +118,13 @@ for s = 1:num_snaps
     max_d = max(dists); 
     
     plot(cur_x, cur_y, '.', 'Color', snap_colors(s,:), 'MarkerSize', 8, 'HandleVisibility', 'off');
-    plot(c_x + (max_d/2)*cos(th_circle), c_y + (max_d/2)*sin(th_circle), ...
-        '--', 'Color', snap_colors(s,:), 'LineWidth', 1.2, ...
-        'DisplayName', sprintf('t=%.1fs (MaxD=%.1fm)', t(idx), max_d));
-    text(c_x, c_y, num2str(s), 'Color', snap_colors(s,:), 'FontSize', 12, 'FontWeight', 'bold', 'HorizontalAlignment', 'center');
+    if s > 1
+        plot(c_x + (max_d/2)*cos(th_circle), c_y + (max_d/2)*sin(th_circle), ...
+            '--', 'Color', snap_colors(s,:), 'LineWidth', 1.2, ...
+            'DisplayName', sprintf('t=%.1fs (MaxD=%.1fm)', t(idx), max_d));
+    text(c_x, c_y, num2str(s-1), 'Color', snap_colors(s,:), 'FontSize', 12, 'FontWeight', 'bold', 'HorizontalAlignment', 'center');
+    
+    end
 end
 
 axis equal; grid on;
