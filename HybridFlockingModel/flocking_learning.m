@@ -9,6 +9,9 @@ previousRngState = rng(0,"twister");
 obsInfo = rlNumericSpec([80 1]); % 8개의 상태 정보
 obsInfo.Name = "observations";
 actInfo = rlNumericSpec([3 1]); % 3개의 가중치 (0~1 사이)
+% actInfo = rlNumericSpec([3 1], ...
+%     'LowerLimit', [0.01; 0.01; 0.01], ...
+%     'UpperLimit', [1; 1; 1]);
 actInfo.Name = "actors";
 
 Ts = 0.1; % Sample time
@@ -106,7 +109,7 @@ agent.AgentOptions.CriticOptimizerOptions = criticOpts;
 
 % Noise model
 agent.AgentOptions.NoiseOptions.StandardDeviation = 0.5;
-agent.AgentOptions.NoiseOptions.StandardDeviationDecayRate = 1e-4;
+agent.AgentOptions.NoiseOptions.StandardDeviationDecayRate = 1e-3;
 getAction(agent,{rand(obsInfo.Dimension)});
 % 
 
@@ -115,7 +118,7 @@ getAction(agent,{rand(obsInfo.Dimension)});
 % Training agent
 % training options
 trainOpts = rlTrainingOptions(...
-    MaxEpisodes=200, ...
+    MaxEpisodes=500, ...
     MaxStepsPerEpisode=ceil(Tf/Ts), ...
     Plots="training-progress", ...
     Verbose=false, ...
@@ -137,9 +140,10 @@ if doTraining
     trainingStats = train(agent, env, trainOpts, Evaluator=evl);
     save("RL_test/AgentTest5_2.mat","agent");
 else
-    load("RL_test/AgentTest5_2.mat", "agent");
+    test_agent = load("RL_test/AgentTest6-1.mat", "agent");
+    agent = test_agent.agent;
     trainingStats = train(agent, env, trainOpts, Evaluator=evl);
-    save("RL_test/AgentTest5_3.mat","agent");
+    save("AgentTest6-2-2.mat","agent");
 end 
 
 %% Validation training agent
@@ -166,8 +170,8 @@ function in = localResetFcn(in)
     min_dist = 75;
     state0 = zeros(5, N);
     x0 = zeros(1, N); y0 = zeros(1, N);
-    r_min = 600;
-    r_max = 900;
+    r_min = 1000;
+    r_max = 1050;
     scatter_range = 300;
 
     center_r = r_min + (r_max - r_min) * rand();

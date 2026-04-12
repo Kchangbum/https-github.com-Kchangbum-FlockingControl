@@ -17,7 +17,7 @@ for i = 1:N
     valid = false;
     while ~valid
         % 거리: 1500m ~ 2500m 사이 (너무 좁으면 20대가 안 들어갈 수 있어 여유를 줌)
-        r_temp = 1500 + 1000 * rand(); 
+        r_temp = 500 + 600 * rand(); 
         
         % 각도: 0 ~ pi/2 (1사분면)
         theta_temp = rand() * (pi/2); 
