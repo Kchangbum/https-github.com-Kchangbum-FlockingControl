@@ -8,10 +8,10 @@ previousRngState = rng(0,"twister");
 %% Info & Setting value
 obsInfo = rlNumericSpec([80 1]); % 8개의 상태 정보
 obsInfo.Name = "observations";
-actInfo = rlNumericSpec([3 1]); % 3개의 가중치 (0~1 사이)
-% actInfo = rlNumericSpec([3 1], ...
-%     'LowerLimit', [0.01; 0.01; 0.01], ...
-%     'UpperLimit', [1; 1; 1]);
+% actInfo = rlNumericSpec([3 1]); % 3개의 가중치 (0~1 사이)
+actInfo = rlNumericSpec([3 1], ...
+    'LowerLimit', [0.01; 0.01; 0.01], ...
+    'UpperLimit', [1; 1; 1]);
 actInfo.Name = "actors";
 
 Ts = 0.1; % Sample time
@@ -93,23 +93,23 @@ getAction(actor,{rand(obsInfo.Dimension)});
 agent = rlDDPGAgent(actor,critic);
 
 agent.AgentOptions.SampleTime = Ts;
-agent.AgentOptions.DiscountFactor = 0.95;
+agent.AgentOptions.DiscountFactor = 0.99;
 agent.AgentOptions.MiniBatchSize = 128;
 agent.AgentOptions.ExperienceBufferLength = 1e6;
-% agent.AgentOptions.TargetSmoothFactor = 1e-3; % Target Network 업데이트 속도 (안정성)
+agent.AgentOptions.TargetSmoothFactor = 1e-3; % Target Network 업데이트 속도 (안정성)
 
 actorOpts = rlOptimizerOptions( ...
     LearnRate=1*1e-4, ...
     GradientThreshold=1);
 criticOpts = rlOptimizerOptions( ...
-    LearnRate=5*1e-4, ...
+    LearnRate=7*1e-4, ...
     GradientThreshold=1);
 agent.AgentOptions.ActorOptimizerOptions = actorOpts;
 agent.AgentOptions.CriticOptimizerOptions = criticOpts;
 
 % Noise model
-agent.AgentOptions.NoiseOptions.StandardDeviation = 0.5;
-agent.AgentOptions.NoiseOptions.StandardDeviationDecayRate = 1e-3;
+agent.AgentOptions.NoiseOptions.StandardDeviation = 0.6;
+agent.AgentOptions.NoiseOptions.StandardDeviationDecayRate = 1e-5;
 getAction(agent,{rand(obsInfo.Dimension)});
 % 
 
@@ -132,13 +132,13 @@ evl = rlEvaluator(EvaluationFrequency=10,NumEpisodes=5);
 
 rng(0,"twister");
 
-doTraining = false;
+doTraining = true;
 
 % Start the training process if doTraining is true
 if doTraining
     % Train the agent.
-    [trainingStats, agent] = train(agent, env, trainOpts, Evaluator=evl);
-    save("AgentTest6-2-2.mat","trainingStats", "agent");
+    trainingStats = train(agent, env, trainOpts, Evaluator=evl);
+    save("AgentTest7.mat","trainingStats", "agent");
 else
     test_agent = load("RL_test/AgentTest5_1.mat", "agent");
     agent = test_agent.agent;
