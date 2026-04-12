@@ -64,20 +64,20 @@ grid on; xlabel('Time [s]'); ylabel('Bank Angle (\phi) [deg]'); title('Bank Angl
 
 %% Figure 3: 군집 응집도 및 거리 검증 (Cohesion)
 figure('Color', 'w', 'Name', 'Cohesion Analysis');
-
+hold on;
 % --- Subplot 1: 중심으로부터의 거리 (2R) ---
-subplot(2, 1, 1); hold on;
+% subplot(2, 1, 1); hold on;
 mean_x = mean(pos_x, 2); mean_y = mean(pos_y, 2);
 dist_to_center = sqrt((pos_x - mean_x).^2 + (pos_y - mean_y).^2);
-plot(t, dist_to_center, 'Color', [0.8 0.8 0.8], 'LineWidth', 0.5);
-plot(t, max(dist_to_center, [], 2), 'r', 'LineWidth', 1, 'DisplayName', 'Max Dist');
-yline(Bound_2R, 'r--', 'Limit (2R)', 'LineWidth', 2);
-ylim([-0.5, 170])
-grid on; ylabel('Dist to Center [m]');
-title('Verification: ||p_i - p_c|| \leq 2R');
+% plot(t, dist_to_center, 'Color', [0.8 0.8 0.8], 'LineWidth', 0.5);
+% plot(t, max(dist_to_center, [], 2), 'r', 'LineWidth', 1, 'DisplayName', 'Max Dist');
+% yline(Bound_2R, 'r--', 'Limit (2R)', 'LineWidth', 2);
+% ylim([-0.5, 170])
+% grid on; ylabel('Dist to Center [m]');
+% title('Verification: ||p_i - p_c|| \leq 2R');
 
 % --- Subplot 2: 기체 간 최소/최대 거리 (4R) ---
-subplot(2, 1, 2); hold on;
+% subplot(2, 1, 2); hold on;
 sample_step = 20;
 s_idx = 1:sample_step:num_steps;
 min_pair = zeros(length(s_idx), 1);
