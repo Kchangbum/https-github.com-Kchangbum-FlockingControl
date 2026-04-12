@@ -137,13 +137,13 @@ doTraining = false;
 % Start the training process if doTraining is true
 if doTraining
     % Train the agent.
-    trainingStats = train(agent, env, trainOpts, Evaluator=evl);
-    save("RL_test/AgentTest5_2.mat","agent");
+    [trainingStats, agent] = train(agent, env, trainOpts, Evaluator=evl);
+    save("AgentTest6-2-2.mat","trainingStats", "agent");
 else
-    test_agent = load("RL_test/AgentTest6-1.mat", "agent");
+    test_agent = load("RL_test/AgentTest5_1.mat", "agent");
     agent = test_agent.agent;
-    trainingStats = train(agent, env, trainOpts, Evaluator=evl);
-    save("AgentTest6-2-2.mat","agent");
+    [trainingStats, agent] = train(agent, env, trainOpts, Evaluator=evl);
+    save("AgentTest6-2-2.mat","trainingStats", "agent");
 end 
 
 %% Validation training agent
