@@ -72,6 +72,7 @@ dist_to_center = sqrt((pos_x - mean_x).^2 + (pos_y - mean_y).^2);
 plot(t, dist_to_center, 'Color', [0.8 0.8 0.8], 'LineWidth', 0.5);
 plot(t, max(dist_to_center, [], 2), 'r', 'LineWidth', 1, 'DisplayName', 'Max Dist');
 yline(Bound_2R, 'r--', 'Limit (2R)', 'LineWidth', 2);
+ylim([-0.5, 170])
 grid on; ylabel('Dist to Center [m]');
 title('Verification: ||p_i - p_c|| \leq 2R');
 
@@ -87,12 +88,14 @@ for k = 1:length(s_idx)
     min_pair(k) = min(dists);
     max_pair(k) = max(dists);
 end
-
+PF = 6;
 fill([t(s_idx); flipud(t(s_idx))], [min_pair; flipud(max_pair)], 'b', 'FaceAlpha', 0.1, 'EdgeColor', 'none', 'HandleVisibility', 'off');
 plot(t(s_idx), max_pair, 'r', 'LineWidth', 1, 'DisplayName', 'Max Inter-agent');
 plot(t(s_idx), min_pair, 'g', 'LineWidth', 1, 'DisplayName', 'Min Inter-agent');
-yline(Bound_4R, 'k--', 'Upper Limit (4R)', 'LineWidth', 2);
+yline(Bound_4R, 'k--', '4R=300m', 'LineWidth', 2, 'DisplayName', 'Upper limit');
+yline(PF, 'k--', 'PF= 6', 'LineWidth', 2, 'DisplayName', 'Lower limit');
 grid on; xlabel('Time [s]'); ylabel('Inter-agent Dist [m]');
+ylim([-0.5, 310]); 
 title('Verification: ||p_i - p_j|| \leq 4R');
 legend('Location', 'best');
 
