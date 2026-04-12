@@ -33,7 +33,7 @@ env.ResetFcn = @localResetFcn;
 commonPath = [
     concatenationLayer(1, 2, Name="concat") % 1번째 차원으로 2개의 입력을 합침
     fullyConnectedLayer(256) % 뉴런 수를 50개 정도로 늘리면 학습이 더 잘 됩니다
-    reluLayer() % 현실적 판단? 
+    reluLasyer() % 현실적 판단? 
     fullyConnectedLayer(128)
     reluLayer()
     fullyConnectedLayer(1, Name="QValue") % Q-value 사용
