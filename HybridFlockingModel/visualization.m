@@ -24,7 +24,7 @@ psi     = squeeze(data_perm(:, 4, :)); % Heading (psi)
 phi     = squeeze(data_perm(:, 5, :)); % Bank Angle (phi)
 
 % 시각화 파라미터 및 색상 설정
-R_val = 75;
+R_val = 50;
 Bound_2R = 2 * R_val;
 Bound_4R = 4 * R_val;
 colors = hsv(N); 
@@ -88,12 +88,12 @@ for k = 1:length(s_idx)
     min_pair(k) = min(dists);
     max_pair(k) = max(dists);
 end
-PF = 6;
+PF = 20;
 fill([t(s_idx); flipud(t(s_idx))], [min_pair; flipud(max_pair)], 'b', 'FaceAlpha', 0.1, 'EdgeColor', 'none', 'HandleVisibility', 'off');
 plot(t(s_idx), max_pair, 'r', 'LineWidth', 1, 'DisplayName', 'Max Inter-agent');
 plot(t(s_idx), min_pair, 'g', 'LineWidth', 1, 'DisplayName', 'Min Inter-agent');
-yline(Bound_4R, 'k--', '4R=300m', 'LineWidth', 2, 'DisplayName', 'Upper limit');
-yline(PF, 'k--', 'PF= 6', 'LineWidth', 2, 'DisplayName', 'Lower limit');
+yline(Bound_4R, 'k--', '4R=200m', 'LineWidth', 2, 'DisplayName', 'Upper limit');
+yline(PF, 'k--', 'PF= 20', 'LineWidth', 2, 'DisplayName', 'Lower limit');
 grid on; xlabel('Time [s]'); ylabel('Inter-agent Dist [m]');
 ylim([-0.5, 310]); 
 title('Verification: ||p_i - p_j|| \leq 4R');
