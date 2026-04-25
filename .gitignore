@@ -42,3 +42,26 @@ codegen/
 /AgentTest7-1.zip
 
 /TrainingStatesEpisode7-1.mat
+
+
+/HybridFlockingModel/RL_Test/.mat
+
+/HybridFlockingModel/RL_Test/AgentTests/.mat
+
+/HybridFlockingModel/RL_Test/TrainingStates/TrainingStates_Test7-1.mat
+
+/HybridFlockingModel/RL_Test/TrainingStates/TrainingStates_Test7-2.mat
+
+/HybridFlockingModel/RL_Test/TrainingStates/TrainingStates_Test7-5.mat
+
+/TrainingStates_Test7-7.mat
+
+/HybridFlockingModel/RL_Test/TrainingStates/states7-8backup.mat
+
+/TrainingStates_Test7-8.mat
+
+/TrainingStates_Test7-9.mat
+
+/matlab.mat
+
+/HybridFlockingModel/RL_Test/AgentTests/Agent_Test7-1.mat
