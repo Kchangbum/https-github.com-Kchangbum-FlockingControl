@@ -104,7 +104,8 @@ evl = rlEvaluator(EvaluationFrequency=20, NumEpisodes=5);
 
 if true
     trainingStates = train(agents, env, trainOpts, Evaluator=evl);
-    save("DDPG_Flocking_Final.mat", "agents");
+    save("DDPG_Flocking_Final_1.mat", "agents");
+    save("DDPG_Flocking_Final_1TrainingStates", "trainingStates");
 end
 %% 초기화 함수
 function in = localResetFcn(in)
