@@ -1,252 +1,133 @@
-clc;
-% open_system("test_flocking_algorithm");
+clc; 
+d2r = pi/180;
+m = 10;
+g = 9.806;
+%% 1. 기초 설정 및 모델 경로 확인
 mdl = 'test_flocking_algorithm';
-% load_system(mdl); % 환경 생성 전 모델 로드 필수
-agentPath = [mdl, '/2-Dimensional model/RL Agent'];
-previousRngState = rng(0,"twister");
+% load_system(mdl); % 필요 시 주석 해제
 
-%% Info & Setting value
-obsInfo = rlNumericSpec([8 1]); % 8개의 상태 정보
-obsInfo.Name = "observations";
-actInfo = rlNumericSpec([3 1], 'LowerLimit', 0, 'UpperLimit', 1); % 3개의 가중치 (0~1 사이)
-actInfo.Name = "actors";
+% 모델 내 'RL Agent' 블록 경로 자동 추출 (줄바꿈/공백 문제 해결)
+% allAgentBlocks = find_system(mdl, 'RegExp', 'on', 'Name', 'RL Agent*');
+% blks = string(sort(allAgentBlocks)); 
+blks = [...
+    "test_flocking_algorithm/2-Dimensional model/RL Agent1",...
+    "test_flocking_algorithm/2-Dimensional model/RL Agent2",...
+    "test_flocking_algorithm/2-Dimensional model/RL Agent3",...
+    "test_flocking_algorithm/2-Dimensional model/RL Agent4",...
+    "test_flocking_algorithm/2-Dimensional model/RL Agent5"...
+    ];
+% if numel(blks) ~= 5
+%     error('모델에서 RL Agent 블록 5개를 찾을 수 없습니다.');
+% end
 
-Ts = 0.1; % Sample time
-Tf = 300; % Final time
- 
-%% Creating critic
-% Observation path
-obsPath = featureInputLayer(obsInfo.Dimension(1), ...
-    Name="obsInLyr");
+Ts = 0.1; % 샘플링 시간
+Tf = 300; % 에피소드 종료 시간
+%% 2. 에이전트 규격(Spec) 정의
+oinfo = rlNumericSpec([6 1]); oinfo.Name = "observations";
+ainfo = rlNumericSpec([3 1], 'LowerLimit', 0.1, 'UpperLimit', 1); ainfo.Name = "actors";
 
-% Action path
-actPath = featureInputLayer(actInfo.Dimension(1), ...
-    Name="actInLyr");
-%% Environment
-env = rlSimulinkEnv(mdl, agentPath, obsInfo, actInfo);
-env.ResetFcn = @localResetFcn;
-%%
-% Common path
+%% 3. 네트워크 설계 (Shared Policy)
+rng(0, "twister");
+
+% --- Critic 네트워크 ---
+obsPath = featureInputLayer(oinfo.Dimension(1), Name="obsInLyr");
+actPath = featureInputLayer(ainfo.Dimension(1), Name="actInLyr");
 commonPath = [
-    concatenationLayer(1,2,Name="concat") % 1번째 차원으로 2개의 입력을 합침
-    fullyConnectedLayer(128) % 뉴런 수를 50개 정도로 늘리면 학습이 더 잘 됩니다
-    reluLayer() % 현실적 판단? 
-    fullyConnectedLayer(64)
-    reluLayer()
-    fullyConnectedLayer(1,Name="QValue") % Q-value 사용
-    % sigmoidLayer(Name="sigmoid") % 0~1 범위 한정 필수
+    concatenationLayer(1, 2, Name="concat")
+    fullyConnectedLayer(256); reluLayer()
+    fullyConnectedLayer(128); reluLayer()
+    fullyConnectedLayer(1, Name="QValue")
     ];
-
-% Create the network object and add the layers
 criticNet = dlnetwork();
-criticNet = addLayers(criticNet,obsPath);
-criticNet = addLayers(criticNet,actPath);
-criticNet = addLayers(criticNet,commonPath);
+criticNet = addLayers(criticNet, obsPath);
+criticNet = addLayers(criticNet, actPath);
+criticNet = addLayers(criticNet, commonPath);
+criticNet = connectLayers(criticNet, "obsInLyr", "concat/in1");
+criticNet = connectLayers(criticNet, "actInLyr", "concat/in2");
+critic = rlQValueFunction(criticNet, oinfo, ainfo, ...
+    ObservationInputNames="obsInLyr", ActionInputNames="actInLyr");
 
-% Connect the layers
-criticNet = connectLayers(criticNet, ...
-    "obsInLyr","concat/in1");
-criticNet = connectLayers(criticNet, ...
-    "actInLyr","concat/in2");
-plot(criticNet);
-
-
-rng(0,"twister");
-criticNet = initialize(criticNet);
-summary(criticNet);
-
-% Create critic obj
-critic = rlQValueFunction(criticNet, ...
-    obsInfo,actInfo, ...
-    ObservationInputNames="obsInLyr", ...
-    ActionInputNames="actInLyr");
-
-getValue(critic, ...
-    {rand(obsInfo.Dimension)}, ...
-    {rand(actInfo.Dimension)});
-
-% Creating actor
+% --- Actor 네트워크 ---
 actorNet = [
-    featureInputLayer(obsInfo.Dimension(1))
-    fullyConnectedLayer(128)
-    reluLayer()
-    fullyConnectedLayer(64)
-    reluLayer()
-    fullyConnectedLayer(actInfo.Dimension(1), Name="actOut") % 3 출력
-    softmaxLayer(Name="softmax")         % ★ 출력 3개의 합을 1로 고정
+    featureInputLayer(oinfo.Dimension(1))
+    fullyConnectedLayer(256); reluLayer()
+    fullyConnectedLayer(128); reluLayer()
+    fullyConnectedLayer(ainfo.Dimension(1), Name="actOut")
+    sigmoidLayer(Name="sigmoid") 
     ];
-
-rng(0,"twister");
 actorNet = dlnetwork(actorNet);
-summary(actorNet);
-plot(actorNet);
+actor = rlContinuousDeterministicActor(actorNet, oinfo, ainfo);
 
-% Actor 생성 시 입력/출력 레이어 이름 명시 (안정성)
-actor = rlContinuousDeterministicActor(actorNet, obsInfo, actInfo);
-getAction(actor,{rand(obsInfo.Dimension)});
+%% 4. [중요] 에이전트 객체 5개를 먼저 생성 (변수명: agents)
+% ★ 에러 메시지 해결의 핵심: 'agents'라는 이름의 배열로 5개를 미리 정의합니다.
+agents = []; 
+for i = 1:5
+    newAgent = rlDDPGAgent(actor, critic);
+    newAgent.AgentOptions.SampleTime = Ts;
+    newAgent.AgentOptions.DiscountFactor = 0.995;
+    newAgent.AgentOptions.MiniBatchSize = 128;
+    newAgent.AgentOptions.ExperienceBufferLength = 1e6;
+    newAgent.AgentOptions.TargetSmoothFactor = 5e-4;
+    newAgent.AgentOptions.ActorOptimizerOptions = rlOptimizerOptions(LearnRate=1e-5, GradientThreshold=1);
+    newAgent.AgentOptions.CriticOptimizerOptions = rlOptimizerOptions(LearnRate=1e-4, GradientThreshold=1);
+    newAgent.AgentOptions.NoiseOptions.StandardDeviation = 0.5;
+    newAgent.AgentOptions.NoiseOptions.StandardDeviationDecayRate = 1e-4;
+    
+    agents = [agents; newAgent];
+end
 
-%% Creating DDPG(Deep Deterministic Policy Gradient) agent
-agent = rlDDPGAgent(actor,critic);
+%% 5. 환경 생성 (이제 메모리에 agents가 있으므로 성공합니다)
+% ★ 여기서 두 번째 인자로 agents(에이전트 배열)를 직접 전달하거나, 
+% Workspace에 agents가 있는 상태에서 blks만 넘겨줍니다.
+env = rlSimulinkEnv(mdl, blks); 
 
-agent.AgentOptions.SampleTime = Ts;
-agent.AgentOptions.DiscountFactor = 0.95;
-agent.AgentOptions.MiniBatchSize = 128;
-agent.AgentOptions.ExperienceBufferLength = 1e5;
-% agent.AgentOptions.TargetSmoothFactor = 1e-3; % Target Network 업데이트 속도 (안정성)
+% env.ResetFcn = @localResetFcn;
+[env.ResetFcn] = deal(@localResetFcn);
+% env.UseFastRestart = 'on';
+[env.UseFastRestart] = deal('on');
 
-actorOpts = rlOptimizerOptions( ...
-    LearnRate=1*1e-4, ...
-    GradientThreshold=1);
-criticOpts = rlOptimizerOptions( ...
-    LearnRate=5*1e-4, ...
-    GradientThreshold=1);
-agent.AgentOptions.ActorOptimizerOptions = actorOpts;
-agent.AgentOptions.CriticOptimizerOptions = criticOpts;
+fprintf('환경(env) 생성에 성공했습니다!\n');
 
-% Noise model
-agent.AgentOptions.NoiseOptions.StandardDeviation = 0.3;
-agent.AgentOptions.NoiseOptions.StandardDeviationDecayRate = 1e-4;
-getAction(agent,{rand(obsInfo.Dimension)});
-% 
-
-% v.ResetFcn = @(in) setVariable(in, 'state0', state0, 'Workspace', mdl);
-
-% Training agent
-% training options
-trainOpts = rlTrainingOptions(...
+%% 6. 학습 설정 및 시작
+trainOpts = rlMultiAgentTrainingOptions(...
+    AgentGroups={[1,2,3,4,5]}, ... 
+    LearningStrategy="centralized", ...
     MaxEpisodes=1000, ...
     MaxStepsPerEpisode=ceil(Tf/Ts), ...
     Plots="training-progress", ...
     Verbose=false, ...
     StopTrainingCriteria="EvaluationStatistic", ...
-    SaveAgentDirectory= pwd, ...
-    StopTrainingValue= -100 ...
+    StopTrainingValue=1e12...
     );
 
-% agent evaluator
-evl = rlEvaluator(EvaluationFrequency=10,NumEpisodes=5);
+evl = rlEvaluator(EvaluationFrequency=20, NumEpisodes=5);
 
-rng(0,"twister");
-
-doTraining = true;
-
-% Start the training process if doTraining is true
-if doTraining
-    % Train the agent.
-    trainingStats = train(agent, env, trainOpts, Evaluator=evl);
-    save("AgentTest4.mat","agent");
-else
-    load("AgentTest2.mat", "agent");
-    trainingStats = train(agent, env, trainOpts, Evaluator=evl);
-    save("AgentTest3.mat","agent");
-end 
-
-%% Validation training agent
-rng(0,"twister");
-
-simOpts = rlSimulationOptions( ...
-    MaxSteps=ceil(Tf/Ts), ...
-    StopOnError="on");
-experiences = sim(env,agent,simOpts);
-
-rng(previousRngState);
-
-% function in = localResetFcn(in)
-%     N = 5; 
-%     min_dist = 75;
-% 
-%     % 5x20 행렬 초기화 (1:x, 2:y, 3:V, 4:psi, 5:bank)
-%     state0 = zeros(5, N);
-% 
-%     % 위치 생성 (Collision-free)
-%     x0 = zeros(1, N); y0 = zeros(1, N);
-%     for i = 1:N
-%         valid = false;
-%         while ~valid
-%             r_temp = 1000 + (1500 - 1000) * rand();
-%             theta_temp = rand() * 2 * pi;
-%             x_temp = r_temp * cos(theta_temp);
-%             y_temp = r_temp * sin(theta_temp);
-% 
-%             if i == 1
-%                 valid = true;
-%             else
-%                 dists = sqrt((x0(1:i-1) - x_temp).^2 + (y0(1:i-1) - y_temp).^2);
-%                 if all(dists >= min_dist), valid = true; end
-%             end
-%         end
-%         x0(i) = x_temp; y0(i) = y_temp;
-%     end
-% 
-%     % 상태 대입
-%     state0(1,:) = x0;
-%     state0(2,:) = y0;
-%     state0(3,:) = 20; % 초기 속도 20m/s
-%     state0(4,:) = atan2(-y0, -x0) + pi/2; % 접선 방향
-%     state0(5,:) = 0; % 초기 Bank angle
-% 
-%     % ★ 중요: 5x20 구조 그대로 문자열 변환
-%     strState = mat2str(state0);
-% 
-%     % 경로 설정 (반드시 gcb 결과와 대조하세요)
-%     blkPath = 'test_flocking_algorithm/2-Dimensional model/UAVs/Integrator2';
-% 
-%     try
-%         in = setBlockParameter(in, blkPath, 'InitialCondition', strState);
-%     catch
-%         fprintf('경로 오류! 실제 경로: %s\n', blkPath);
-%     end
-% end
-
+if true
+    trainingStates = train(agents, env, trainOpts, Evaluator=evl);
+    save("DDPG_Flocking_Final_1.mat", "agents");
+    save("DDPG_Flocking_Final_1TrainingStates", "trainingStates");
+end
+%% 초기화 함수
 function in = localResetFcn(in)
-    % 1. 에피소드 카운트를 위한 영구 변수 설정
-    disp('--- Reset 함수가 호출되었습니다! ---'); 
 
-    persistent episode_count;
-    if isempty(episode_count)
-        episode_count = 0;
-    end
-    episode_count = episode_count + 1;
-    % 
-    N = 10; 
-    min_dist = 75;
-    state0 = zeros(5, N);
-    x0 = zeros(1, N); y0 = zeros(1, N);
-    % 
-    % % 2. 커리큘럼 단계 설정 (기준: 500 에피소드마다 난이도 상승)
-    % % 단계 1: 500m 궤도 근처에서 뭉쳐서 시작 (학습 초기)
-    % if episode_count <= 100
-    %     r_min = 450; 
-    %     r_max = 550;
-    %     scatter_range = 225; % 개체들이 뭉쳐 있을 범위
-    % % 단계 2: 조금 더 먼 곳에서 시작
-    % elseif episode_count <= 300
-    %     r_min = 800;
-    %     r_max = 1000;
-    %     scatter_range = 300;
-    % % 단계 3: 최종 목표인 1500m 부근에서 시작 (학습 숙련)
-    % else
-        r_min = 1000;
-        r_max = 1200;
-        scatter_range = 500;
-    % end
-
-    % 3. 위치 생성 로직
-    % 먼저 기준이 되는 중심점(Central Point)을 하나 잡습니다.
+    N = 5; 
+    min_dist = 80; r_min = 750; r_max = 800; scatter_range = 300;
+    
     center_r = r_min + (r_max - r_min) * rand();
     center_theta = rand() * 2 * pi;
     center_x = center_r * cos(center_theta);
     center_y = center_r * sin(center_theta);
-
+    
+    state0 = zeros(5, N);
+    x0 = zeros(1, N); y0 = zeros(1, N);
+    
     for i = 1:N
         valid = false;
         while ~valid
-            % 중심점 기준으로 scatter_range 이내에 배치 (옹기종기 모임)
             x_temp = center_x + (rand()-0.5) * 2 * scatter_range;
             y_temp = center_y + (rand()-0.5) * 2 * scatter_range;
-
             if i == 1
-                valid = true;
+                valid  = true;
             else
                 dists = sqrt((x0(1:i-1) - x_temp).^2 + (y0(1:i-1) - y_temp).^2);
                 if all(dists >= min_dist), valid = true; end
@@ -254,32 +135,15 @@ function in = localResetFcn(in)
         end
         x0(i) = x_temp; y0(i) = y_temp;
     end
-
-    % 4. 상태 대입 및 방향 설정
-    state0(1,:) = x0;
-    state0(2,:) = y0;
+    
+    to_center = atan2(-y0, -x0);
+    tangent = atan2(y0, x0) + pi/2;
+    
+    state0(1,:) = x0; 
+    state0(2,:) = y0; 
     state0(3,:) = 20; 
-
-    % 먼 곳에서 시작할 때는 안쪽(중앙)을 바라보는 것이 진입에 유리함
-    if episode_count > 500
-        % 중앙을 바라보는 방향과 접선 방향을 적절히 섞음 (나선형 진입 유도)
-        to_center = atan2(-y0, -x0);
-        tangent = atan2(y0, x0) + pi/2;
-        state0(4,:) = 0.7 * to_center + 0.3 * tangent; 
-    else
-        state0(4,:) = atan2(y0, x0) + pi/2; % 가까울 때는 바로 선회 시작
-    end
-
-% 4. 상태 대입 직전 로그 출력
-    fprintf('DEBUG: 에피소드 %d 실행 중. r_min=%.1f\n', episode_count, r_min);
-    state0(5,:) = 0; 
-
-    % 블록 파라미터 설정 (기존 코드와 동일)
-    strState = mat2str(state0);
-    blkPath = 'test_flocking_algorithm/2-Dimensional model/UAVs/Integrator2';
-    try
-        in = setBlockParameter(in, blkPath, 'InitialCondition', strState);
-    catch
-        fprintf('경로 오류! 실제 경로: %s\n', blkPath);
-    end
+    state0(4,:) = 0.7 * to_center + 0.  * tangent; 
+    state0(5,:) = 0;  
+    
+    in = setVariable(in, 'init_state', state0); 
 end

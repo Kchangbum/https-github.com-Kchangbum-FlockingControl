@@ -24,7 +24,7 @@ psi     = squeeze(data_perm(:, 4, :)); % Heading (psi)
 phi     = squeeze(data_perm(:, 5, :)); % Bank Angle (phi)
 
 % 시각화 파라미터 및 색상 설정
-R_val = 75;
+R_val = 50;
 Bound_2R = 2 * R_val;
 Bound_4R = 4 * R_val;
 colors = hsv(N); 
@@ -64,19 +64,20 @@ grid on; xlabel('Time [s]'); ylabel('Bank Angle (\phi) [deg]'); title('Bank Angl
 
 %% Figure 3: 군집 응집도 및 거리 검증 (Cohesion)
 figure('Color', 'w', 'Name', 'Cohesion Analysis');
-
+hold on;
 % --- Subplot 1: 중심으로부터의 거리 (2R) ---
-subplot(2, 1, 1); hold on;
+% subplot(2, 1, 1); hold on;
 mean_x = mean(pos_x, 2); mean_y = mean(pos_y, 2);
 dist_to_center = sqrt((pos_x - mean_x).^2 + (pos_y - mean_y).^2);
-plot(t, dist_to_center, 'Color', [0.8 0.8 0.8], 'LineWidth', 0.5);
-plot(t, max(dist_to_center, [], 2), 'r', 'LineWidth', 1, 'DisplayName', 'Max Dist');
-yline(Bound_2R, 'r--', 'Limit (2R)', 'LineWidth', 2);
-grid on; ylabel('Dist to Center [m]');
-title('Verification: ||p_i - p_c|| \leq 2R');
+% plot(t, dist_to_center, 'Color', [0.8 0.8 0.8], 'LineWidth', 0.5);
+% plot(t, max(dist_to_center, [], 2), 'r', 'LineWidth', 1, 'DisplayName', 'Max Dist');
+% yline(Bound_2R, 'r--', 'Limit (2R)', 'LineWidth', 2);
+% ylim([-0.5, 170])
+% grid on; ylabel('Dist to Center [m]');
+% title('Verification: ||p_i - p_c|| \leq 2R');
 
 % --- Subplot 2: 기체 간 최소/최대 거리 (4R) ---
-subplot(2, 1, 2); hold on;
+% subplot(2, 1, 2); hold on;
 sample_step = 20;
 s_idx = 1:sample_step:num_steps;
 min_pair = zeros(length(s_idx), 1);
@@ -87,12 +88,14 @@ for k = 1:length(s_idx)
     min_pair(k) = min(dists);
     max_pair(k) = max(dists);
 end
-
+PF = 20;
 fill([t(s_idx); flipud(t(s_idx))], [min_pair; flipud(max_pair)], 'b', 'FaceAlpha', 0.1, 'EdgeColor', 'none', 'HandleVisibility', 'off');
 plot(t(s_idx), max_pair, 'r', 'LineWidth', 1, 'DisplayName', 'Max Inter-agent');
 plot(t(s_idx), min_pair, 'g', 'LineWidth', 1, 'DisplayName', 'Min Inter-agent');
-yline(Bound_4R, 'k--', 'Upper Limit (4R)', 'LineWidth', 2);
+yline(Bound_4R, 'k--', '4R=200m', 'LineWidth', 2, 'DisplayName', 'Upper limit');
+yline(PF, 'k--', 'PF= 20', 'LineWidth', 2, 'DisplayName', 'Lower limit');
 grid on; xlabel('Time [s]'); ylabel('Inter-agent Dist [m]');
+ylim([-0.5, 310]); 
 title('Verification: ||p_i - p_j|| \leq 4R');
 legend('Location', 'best');
 
@@ -115,10 +118,13 @@ for s = 1:num_snaps
     max_d = max(dists); 
     
     plot(cur_x, cur_y, '.', 'Color', snap_colors(s,:), 'MarkerSize', 8, 'HandleVisibility', 'off');
-    plot(c_x + (max_d/2)*cos(th_circle), c_y + (max_d/2)*sin(th_circle), ...
-        '--', 'Color', snap_colors(s,:), 'LineWidth', 1.2, ...
-        'DisplayName', sprintf('t=%.1fs (MaxD=%.1fm)', t(idx), max_d));
-    text(c_x, c_y, num2str(s), 'Color', snap_colors(s,:), 'FontSize', 12, 'FontWeight', 'bold', 'HorizontalAlignment', 'center');
+    if s > 1
+        plot(c_x + (max_d/2)*cos(th_circle), c_y + (max_d/2)*sin(th_circle), ...
+            '--', 'Color', snap_colors(s,:), 'LineWidth', 1.2, ...
+            'DisplayName', sprintf('t=%.1fs (MaxD=%.1fm)', t(idx), max_d));
+    text(c_x, c_y, num2str(s-1), 'Color', snap_colors(s,:), 'FontSize', 12, 'FontWeight', 'bold', 'HorizontalAlignment', 'center');
+    
+    end
 end
 
 axis equal; grid on;
