@@ -7,7 +7,7 @@ function r_i = compute_reward(state, action, agent_idx, ...
 %     학습 후(좋은 정책) → episode 총합 ≈   0
 %
 %  스케일 도출:
-%     Episode 길이 = Tf/Ts = 200/0.1 = 2000 step
+%     Episode 길이 = Tf/Ts = 200/0.1 = 2000 step 
 %     초기 평균 cost ≈ 1.0 (정규화 가중합 기준)
 %     scale = 10 / (2000 × 1.0) = 0.005
 %

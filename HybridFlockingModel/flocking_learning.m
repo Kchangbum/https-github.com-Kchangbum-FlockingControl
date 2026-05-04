@@ -28,7 +28,7 @@ Tf            = 200;          % 1 에피소드 길이 [s]
 R_orbit       = 500;          % 목표 군집 중점 궤도 반경 [m]
 V_target      = 20;           % 목표 속도 [m/s]
 R_form        = 75;           % 각 에이전트가 자유롭게 비행 가능한 반경 [m]
-R_safe        = 30;           % 안전 이격 거리 [m]
+R_safe        = 50;           % 안전 이격 거리 [m]
 R_collision   = 12;           % 충돌 임계 [m]   (이 값 미만이면 큰 페널티)
 R_swarm_max   = 200;          % 군집 최대 산개 [m]
 
@@ -145,11 +145,11 @@ fprintf('환경 생성 완료 (agents = %d)\n', N_agents);
 trainOpts = rlMultiAgentTrainingOptions( ...
     'AgentGroups',                {1:N_agents}, ...
     'LearningStrategy',           'centralized', ...
-    'MaxEpisodes',                3000, ...
+    'MaxEpisodes',                5000, ...
     'MaxStepsPerEpisode',         ceil(Tf/Ts), ...
     'ScoreAveragingWindowLength', 30, ...        % 30 에피소드 이동평균 → 그래프 매끈
     'StopTrainingCriteria',       'AverageReward', ...
-    'StopTrainingValue',          -0.5, ...      % 0에 충분히 근접 → 학습 종료
+    'StopTrainingValue',          1e6, ...      % 0에 충분히 근접 → 학습 종료
     'Plots',                      'training-progress', ...
     'Verbose',                    false);
 
@@ -161,6 +161,9 @@ if doTrain
     trainingStats = train(agents, env, trainOpts, 'Evaluator', evl);
     save(fullfile(this_dir,'DDPG_HybridFlocking.mat'),       'agents');
     save(fullfile(this_dir,'DDPG_HybridFlocking_stats.mat'), 'trainingStats');
+    EpisodeRewards = trainingStats.EpisodeReward;
+    AvgRewards = trainingStats.AverageReward;
+    save("rewards.mat", "AvgRewards", "EpisodeRewards");
     fprintf('학습 완료. 결과 저장: %s\n', this_dir);
 end
 
