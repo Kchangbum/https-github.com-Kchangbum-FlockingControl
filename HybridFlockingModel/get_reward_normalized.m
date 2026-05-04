@@ -28,12 +28,14 @@ function [all_rewards, rewards_detail] = get_reward_normalized(all_obs)
     all_rewards    = zeros(1, N);
     rewards_detail = zeros(5, N);
 
-    %% 채널별 스케일 (gradient 신호 강화)
-    s_path  = 0.0125;
-    s_align = 0.0075;
-    s_flock = 0.0100;
-    s_col   = 0.0150;
-    surv    = 0.0015;
+    %% 채널별 스케일 (-10 → 0 우상향 디스플레이용)
+    %  1배 스케일로 환원: episode 총합이 [-10, 0] 범위에 들어옴
+    %  surv = 0 → 보상은 항상 ≤ 0, 정책 좋아지면 0에 점근
+    s_path  = 0.0025;
+    s_align = 0.0015;
+    s_flock = 0.0020;
+    s_col   = 0.0030;
+    surv    = 0.0;       % 양수 항 제거 → 0을 절대 안 넘음
 
     %% Team Mixing 비율
     alpha_indiv = 0.7;     % 개별 보상 비중
@@ -73,9 +75,9 @@ function [all_rewards, rewards_detail] = get_reward_normalized(all_obs)
 
         % 안전 클램프
         if isnan(total) || isinf(total)
-            total = -0.25;
+            total = -0.05;
         end
-        total = max(min(total, 0.005), -0.5);
+        total = max(min(total, 0), -0.05);    % per-step [-0.05, 0] (0 절대 안 넘음)
 
         detail(:, i)  = [path_pen; align_pen; flock_pen; col_pen; surv_bonus];
         individual(i) = total;
