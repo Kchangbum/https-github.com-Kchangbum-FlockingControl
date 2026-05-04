@@ -28,11 +28,12 @@ function all_obs = get_observation_normalized(all_states)
 %   - 정책이 "어느 방향으로 비키는 게 안전한지" 학습 가능
 %% ------------------------------------------------------------------------
 
-    %% 정규화 상수 (flocking_learning.m 과 동기화)
-    R_orbit  = 500;
-    V_target = 20;
-    R_form   = 75;
-    R_safe   = 30;
+    %% 정규화 상수 (제어기 코드와 동기화)
+    %  VFG: rd=500, Vd=20  /  ACS: R=50  /  PF: c=20
+    R_orbit  = 500;     % VFG의 rd
+    V_target = 20;      % VFG의 Vd
+    R_form   = 75;      % ACS R=50 기반 + 펜타곤 여유
+    R_safe   = 35;      % PF c=20 ~ ACS R=50 사이
 
     N       = size(all_states, 2);
     all_obs = zeros(14, N);
