@@ -161,11 +161,11 @@ evl = rlEvaluator('EvaluationFrequency', 25, 'NumEpisodes', 3);
 doTrain = true;
 if doTrain
     trainingStats = train(agents, env, trainOpts, 'Evaluator', evl);
-    save(fullfile(this_dir,'DDPG_HybridFlocking.mat'),       'agents');
-    save(fullfile(this_dir,'DDPG_HybridFlocking_stats.mat'), 'trainingStats');
+    save(fullfile(this_dir,'DDPG_HybridFlocking8-4.mat'),       'agents');
+    save(fullfile(this_dir,'DDPG_HybridFlocking_stats8-4.mat'), 'trainingStats');
     EpisodeRewards = trainingStats.EpisodeReward;
     AvgRewards = trainingStats.AverageReward;
-    save("rewards.mat", "AvgRewards", "EpisodeRewards");
+    save("rewards8-4.mat", "AvgRewards", "EpisodeRewards");
     fprintf('학습 완료. 결과 저장: %s\n', this_dir);
 end
 
