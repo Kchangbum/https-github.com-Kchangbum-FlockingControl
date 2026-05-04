@@ -24,14 +24,15 @@ function [all_rewards, rewards_detail] = get_reward_normalized(all_obs)
     all_rewards    = zeros(1, N);
     rewards_detail = zeros(5, N);
 
-    %% --- 채널별 스케일 (per-step 음수, episode 합계 ≈ -10 튜닝) -------
-    %  각 채널 max ≈ -0.002, 평균 bad-policy 시 합 ≈ -0.005/step
-    %  → 2000 step × -0.005 = -10
-    s_path  = 0.0025;     % 군집 중점 경로 추종
-    s_align = 0.0015;     % 헤딩 정렬 (접선 방향)
-    s_flock = 0.0020;     % 군집 응집 (R_form 바깥에서만)
-    s_col   = 0.0030;     % 충돌 회피 (R_safe 안에서만)
-    surv    = 0.0003;     % survival bonus (작은 양수, 전체 ≈ +0.6)
+    %% --- 채널별 스케일 (gradient 신호 강화 버전) -----------------------
+    %  이전 학습이 너무 빨리 평탄화되어 정책 붕괴 → 스케일을 5배 키워
+    %  per-step penalty 크기를 ↑ 시켜 critic Q-value의 식별력 확보
+    %  새 episode 합계: bad ≈ -50, good ≈ 0  (절대값보다 gradient 강도가 중요)
+    s_path  = 0.0125;     % 군집 중점 경로 추종 (5×)
+    s_align = 0.0075;     % 헤딩 정렬 (접선 방향) (5×)
+    s_flock = 0.0100;     % 군집 응집 (R_form 바깥에서만) (5×)
+    s_col   = 0.0150;     % 충돌 회피 (R_safe 안에서만) (5×)
+    surv    = 0.0015;     % survival bonus (5×, 전체 ≈ +3)
 
     for i = 1:N
         obs_i    = all_obs(:, i);
@@ -68,9 +69,9 @@ function [all_rewards, rewards_detail] = get_reward_normalized(all_obs)
 
         %% --- 안전 클램프 (수치 폭주/폭락 방지) ---
         if isnan(total) || isinf(total)
-            total = -0.05;
+            total = -0.25;
         end
-        total = max(min(total, 0.005), -0.1);  % per-step [-0.1, +0.005]
+        total = max(min(total, 0.005), -0.5);  % per-step [-0.5, +0.005]
 
         rewards_detail(:, i) = [path_pen; align_pen; flock_pen; col_pen; surv_bonus];
         all_rewards(i)       = total;

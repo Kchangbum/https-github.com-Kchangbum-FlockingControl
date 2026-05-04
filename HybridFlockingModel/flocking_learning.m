@@ -123,15 +123,17 @@ for i = 1:N_agents
     a.AgentOptions.NumStepsToLookAhead     = 1;
 
     a.AgentOptions.ActorOptimizerOptions   = rlOptimizerOptions( ...
-        'LearnRate', 1e-4, 'GradientThreshold', 1);
+        'LearnRate', 5e-5, 'GradientThreshold', 1);   % 살짝 낮춰서 분기 완화
     a.AgentOptions.CriticOptimizerOptions  = rlOptimizerOptions( ...
-        'LearnRate', 1e-3, 'GradientThreshold', 1);
+        'LearnRate', 5e-4, 'GradientThreshold', 1);
 
-    % OU 노이즈: 천천히 감쇠 → 후반부 정책이 안정되며 평균 보상 우상향
+    % OU 노이즈: 탐색 유지 (정책 붕괴 방지)
+    %  - 표준편차를 0.5로 키우고 감쇠를 매우 천천히
+    %  - σ_min도 0.1로 올려 영구 탐색 보장 (local min 탈출용)
     a.AgentOptions.NoiseOptions.MeanAttractionConstant     = 0.15;
-    a.AgentOptions.NoiseOptions.StandardDeviation          = 0.30;
-    a.AgentOptions.NoiseOptions.StandardDeviationDecayRate = 1e-5;
-    a.AgentOptions.NoiseOptions.StandardDeviationMin       = 0.05;
+    a.AgentOptions.NoiseOptions.StandardDeviation          = 0.50;
+    a.AgentOptions.NoiseOptions.StandardDeviationDecayRate = 1e-6;   % 10배 느림
+    a.AgentOptions.NoiseOptions.StandardDeviationMin       = 0.10;   % 영구 탐색
 
     agents = [agents; a]; %#ok<AGROW>
 end
