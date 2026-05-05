@@ -125,7 +125,7 @@ for i = 1:N_agents
     a.AgentOptions.SampleTime              = Ts;
     a.AgentOptions.DiscountFactor          = 0.99;
     a.AgentOptions.MiniBatchSize           = 256;
-    a.AgentOptions.ExperienceBufferLength  = 1e6;
+    a.AgentOptions.ExperienceBufferLength  = 1e5;
     a.AgentOptions.TargetSmoothFactor      = 1e-3;     % 5e-3 → 1e-3 (안정화)
     a.AgentOptions.NumStepsToLookAhead     = 1;
 
@@ -160,13 +160,16 @@ fprintf('[OK] Environment ready.\n');
 trainOpts = rlMultiAgentTrainingOptions( ...
     'AgentGroups',                {1:N_agents}, ...
     'LearningStrategy',           'centralized', ...
-    'MaxEpisodes',                1500, ...        % 충분한 학습 시간 확보
+    'MaxEpisodes',                5000, ...        % 충분한 학습 시간 확보
     'MaxStepsPerEpisode',         ceil(Tf/Ts), ...
+    'SaveAgentCriteria',          'EpisodeFrequency', ... % 특정 에피소드마다 저장
+    'SaveAgentValue',             500, ...               % 100 에피소드마다 저장
+    'SaveAgentDirectory',         fullfile(this_dir, 'Checkpoints'), ... % 저장 폴더...
     'ScoreAveragingWindowLength', 30, ...
     'StopTrainingCriteria',       'AverageReward', ...
-    'StopTrainingValue',          -0.3, ...        % 0에 충분히 근접하면 종료 (-10에서 시작)
-    'Plots',                      'training-progress', ...
-    'Verbose',                    false);
+    'StopTrainingValue',          10, ...        % 0에 충분히 근접하면 종료 (-10에서 시작)
+    'Plots',                      'none', ...
+    'Verbose',                    true);
 
 evl = rlEvaluator('EvaluationFrequency', 25, 'NumEpisodes', 3);
 
@@ -181,9 +184,27 @@ syncEvery      = 25;        % 25 에피소드마다 가중치 평균 → 5명에
 doTrain = true;
 if doTrain
     if ~useChunkedSync
+        % 1. 이전에 학습된 에이전트 객체 불러오기
+        % load("DDPG_HybridFlocking_agents8-4", "agents");
+        
+        % 2. ★ 중요: 불러온 에이전트들을 Base Workspace에 다시 등록하여 Simulink와 연결
+        % for i = 1:numel(agents)
+        %     assignin('base', sprintf('agentObj%d', i), agents(i));
+        % end
+        % fprintf('[RESUME] 기존 에이전트 가중치를 불러와 Base Workspace에 등록했습니다.\n');
+        
         % --- 옵션 A: 표준 학습 ---
         trainingStats = train(agents, env, trainOpts, 'Evaluator', evl);
     else
+        % 1. 이전에 학습된 에이전트 객체 불러오기
+        % load("DDPG_HybridFlocking_agents8-4", "agents");
+        
+        % 2. ★ 중요: 불러온 에이전트들을 Base Workspace에 다시 등록하여 Simulink와 연결
+        % for i = 1:numel(agents)
+        %     assignin('base', sprintf('agentObj%d', i), agents(i));
+        % end
+        % fprintf('[RESUME] 기존 에이전트 가중치를 불러와 Base Workspace에 등록했습니다.\n');
+        
         % --- 옵션 B: 청크 학습 + sync ---
         totalEps      = trainOpts.MaxEpisodes;
         chunks        = ceil(totalEps / syncEvery);
@@ -203,8 +224,11 @@ if doTrain
                     c, chunks, c*syncEvery);
         end
     end
-    save(fullfile(this_dir,'DDPG_HybridFlocking_agents.mat'), 'agents');
-    save(fullfile(this_dir,'DDPG_HybridFlocking_stats.mat'),  'trainingStats');
+    save(fullfile(this_dir,'DDPG_HybridFlocking_agents8-4-2.mat'), 'agents');
+    save(fullfile(this_dir,'DDPG_HybridFlocking_stats8-4-2.mat'),  'trainingStats');
+    EpisodeRewards = trainingStats.EpisodeReward;
+    AvgRewards = trainingStats.AverageReward;
+    save("rewards8-4-2.mat", "EpisodeRewards", "AvgRewards");
     fprintf('[DONE] Training complete. Saved in %s\n', this_dir);
 end
 
@@ -219,7 +243,7 @@ function in = localResetFcn(in)
     R_form_init   = 60;
     min_dist_init = 25;
 
-    radial0 = R_orbit + (rand()-0.5) * 200;
+    radial0 = (R_orbit + 200) + rand()*100;
     th0     = rand() * 2 * pi;
     cx      = radial0 * cos(th0);
     cy      = radial0 * sin(th0);
